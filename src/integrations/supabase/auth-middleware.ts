@@ -9,8 +9,11 @@ import type { Database } from './types'
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
     
-    const SUPABASE_URL = process.env.SUPABASE_URL ? process.env.SUPABASE_URL.replace(/^["']|["']$/g, '').trim() : undefined;
-    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY ? process.env.SUPABASE_PUBLISHABLE_KEY.replace(/^["']|["']$/g, '').trim() : undefined;
+    const rawSupabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const rawSupabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    const SUPABASE_URL = rawSupabaseUrl ? rawSupabaseUrl.replace(/^["']|["']$/g, '').trim() : undefined;
+    const SUPABASE_PUBLISHABLE_KEY = rawSupabaseKey ? rawSupabaseKey.replace(/^["']|["']$/g, '').trim() : undefined;
 
     if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
       const missing = [
@@ -60,20 +63,19 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       }
     );
 
-    const { data, error } = await supabase.auth.getClaims(token);
-    if (error || !data?.claims) {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) {
       throw new Error('Unauthorized: Invalid token');
     }
 
-    if (!data.claims.sub) {
+    if (!data.user.id) {
       throw new Error('Unauthorized: No user ID found in token');
     }
 
     return next({
       context: {
         supabase,
-        userId: data.claims.sub,
-        claims: data.claims,
+        userId: data.user.id,
       },
     });
   },

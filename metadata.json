@@ -1,6 +1,6 @@
 {
-  "name": "Hello World Landing Page",
-  "description": "A simple landing page with a hero section placeholder.",
+  "name": "TrendRush NG",
+  "description": "Naija's hottest deals, delivered fast. Imported from Mark56-mn/trendrush-ng-hub.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-r
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
@@ -67,18 +66,6 @@ function AuthPage() {
     }
   }
 
-  async function handleGoogle() {
-    setError(null);
-    setBusy(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      setError(String((result.error as any).message ?? result.error));
-      setBusy(false);
-    }
-  }
-
   return (
     <div className="mx-auto flex max-w-md flex-col px-4 py-10">
       <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
@@ -94,19 +81,9 @@ function AuthPage() {
       </p>
 
       {mode !== "forgot" && (
-        <>
-          <button
-            onClick={handleGoogle}
-            disabled={busy}
-            className="mt-6 flex items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-3 font-semibold disabled:opacity-50"
-          >
-            Continue with Google
-          </button>
-
           <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-border" />
           </div>
-        </>
       )}
 
       {forgotSent ? (

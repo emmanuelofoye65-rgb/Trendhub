@@ -38,7 +38,7 @@ function AdminLayout() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-display text-2xl font-black text-orange">Admin</h1>
       </div>
-      <nav className="mb-6 flex gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1">
+      <nav className="mb-6 flex space-x-1 overflow-x-auto rounded-lg border border-border bg-card p-1 no-scrollbar">
         {tabs.map((t) => {
           const active = t.exact
             ? pathname === "/admin" || pathname === "/admin/"
@@ -48,8 +48,8 @@ function AdminLayout() {
             <Link
               key={t.to}
               to={t.to as "/admin"}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold ${
-                active ? "bg-neon text-neon-foreground" : "text-muted-foreground hover:text-foreground"
+              className={`flex whitespace-nowrap items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+                active ? "bg-neon text-neon-foreground" : "text-muted-foreground hover:bg-border/50 hover:text-foreground"
               }`}
             >
               <Icon className="h-4 w-4" /> {t.label}

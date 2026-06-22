@@ -253,6 +253,61 @@ export const deleteImportedProduct = createServerFn({ method: 'POST' })
 /**
  * Update an imported product
  */
+/**
+ * Publish an imported product to the main storefront as Draft or Active
+ */
+export const publishImportedProduct = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ context, data }): Promise<{
+    success: boolean;
+    error?: string;
+  }> => {
+    try {
+      // 1. Fetch the imported product
+      const { data: imported, error: fetchErr } = await context.supabase
+        .from('imported_products')
+        .select('*')
+        .eq('id', data.id)
+        .eq('user_id', context.userId)
+        .single();
+      
+      if (fetchErr || !imported) {
+        return { success: false, error: 'Product not found' };
+      }
+
+      // 2. Insert into the main products table (default is_active to false so it requires explicit addition to storefront)
+      const { error: insertErr } = await context.supabase
+        .from('products')
+        .insert({
+          title: imported.product_name || 'Imported Product',
+          description: imported.description || '',
+          price_naira: imported.price || 0,
+          image_urls: imported.image_url ? [imported.image_url] : [],
+          is_active: false, // Ensures it's not immediately available for sale "unless I add them"
+          stock: 10
+        });
+
+      if (insertErr) {
+        console.error('[WAP] Insert to storefront error:', insertErr);
+        return { success: false, error: 'Failed to publish to storefront' };
+      }
+
+      // 3. Optionally delete from imported_products or mark as done.
+      // Since 'published' isn't in CHECK constraint, we can just delete it or leave it. 
+      // Deleting keeps the list clean.
+      await context.supabase.from('imported_products').delete().eq('id', imported.id);
+
+      return { success: true };
+    } catch (error) {
+      console.error('[WAP] Publish error:', error);
+      return { success: false, error: 'An error occurred while publishing' };
+    }
+  });
+
+/**
+ * Update an imported product
+ */
 export const updateImportedProduct = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>

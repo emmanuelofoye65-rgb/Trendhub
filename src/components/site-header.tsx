@@ -37,7 +37,7 @@ export function SiteHeader() {
           {admin && (
             <Link
               to="/admin"
-              className="hidden items-center gap-1 rounded-md border border-orange/40 px-2 py-1 text-xs font-semibold text-orange sm:flex"
+              className="flex items-center gap-1 rounded-md border border-orange/40 px-2 py-1 text-xs font-semibold text-orange"
             >
               <ShieldCheck className="h-3.5 w-3.5" /> Admin
             </Link>

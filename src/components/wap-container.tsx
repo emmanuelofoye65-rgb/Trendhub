@@ -14,9 +14,10 @@ import {
   importMultipleProducts,
   fetchImportedProducts,
   deleteImportedProduct,
-  updateImportedProduct
+  updateImportedProduct,
+  publishImportedProduct
 } from '@/lib/wap-import.functions';
-import { Loader2, Trash2, Edit2, CheckCircle, AlertCircle, Copy } from 'lucide-react';
+import { Loader2, Trash2, Edit2, CheckCircle, AlertCircle, Copy, Share } from 'lucide-react';
 
 interface ImportedProduct {
   id: string;
@@ -37,6 +38,7 @@ export function WAPContainer() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<ImportedProduct>>({});
   const [successMessage, setSuccessMessage] = useState('');
+  const [publishingId, setPublishingId] = useState<string | null>(null);
 
   // Fetch imported products
   const { data: productsResponse, refetch: refetchProducts, isLoading: isLoadingProducts } = useQuery({
@@ -111,6 +113,24 @@ export function WAPContainer() {
       setEditingId(null);
       setEditData({});
       refetchProducts();
+    }
+  });
+
+  // Publish mutation
+  const publishMutation = useMutation({
+    mutationFn: async (id: string) => {
+      setPublishingId(id);
+      const result = await publishImportedProduct({ id } as any);
+      if (!result.success) throw new Error(result.error || 'Failed to publish');
+    },
+    onSuccess: () => {
+      setSuccessMessage('Product published to storefront successfully!');
+      setPublishingId(null);
+      refetchProducts();
+      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+    onError: () => {
+      setPublishingId(null);
     }
   });
 
@@ -398,15 +418,29 @@ export function WAPContainer() {
                           variant="outline"
                           size="sm"
                           onClick={() => startEditing(product)}
+                          disabled={publishingId === product.id}
                         >
                           <Edit2 className="h-4 w-4 mr-1" />
                           Edit
                         </Button>
                         <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => publishMutation.mutate(product.id)}
+                          disabled={publishingId === product.id || deleteMutation.isPending}
+                        >
+                          {publishingId === product.id ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Share className="h-4 w-4 mr-1" />
+                          )}
+                          Publish to Store
+                        </Button>
+                        <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => handleDelete(product.id)}
-                          disabled={deleteMutation.isPending}
+                          disabled={deleteMutation.isPending || publishingId === product.id}
                         >
                           <Trash2 className="h-4 w-4 mr-1" />
                           Delete

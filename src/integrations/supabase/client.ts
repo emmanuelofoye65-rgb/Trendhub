@@ -5,8 +5,18 @@ import type { Database } from './types';
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering)
-  const rawUrl = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  const getEnv = (key: string) => {
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+      return import.meta.env[key];
+    }
+    if (typeof process !== 'undefined' && process.env && process.env[key]) {
+      return process.env[key];
+    }
+    return undefined;
+  };
+
+  const rawUrl = getEnv('VITE_SUPABASE_URL') || getEnv('SUPABASE_URL');
+  const rawKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('VITE_SUPABASE_PUBLISHABLE_KEY') || getEnv('SUPABASE_ANON_KEY') || getEnv('SUPABASE_PUBLISHABLE_KEY');
 
   const SUPABASE_URL = rawUrl ? rawUrl.replace(/^["']|["']$/g, '').trim() : undefined;
   const SUPABASE_PUBLISHABLE_KEY = rawKey ? rawKey.replace(/^["']|["']$/g, '').trim() : undefined;

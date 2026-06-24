@@ -6,8 +6,17 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 function createSupabaseAdminClient() {
-  const SUPABASE_URL = process.env.SUPABASE_URL ? process.env.SUPABASE_URL.replace(/^["']|["']$/g, '').trim() : undefined;
-  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.replace(/^["']|["']$/g, '').trim() : undefined;
+  const getEnv = (key: string) => {
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) return import.meta.env[key];
+    if (typeof process !== 'undefined' && process.env && process.env[key]) return process.env[key];
+    return undefined;
+  };
+
+  const rawUrl = getEnv('SUPABASE_URL') || getEnv('VITE_SUPABASE_URL');
+  const rawKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+
+  const SUPABASE_URL = rawUrl ? rawUrl.replace(/^["']|["']$/g, '').trim() : undefined;
+  const SUPABASE_SERVICE_ROLE_KEY = rawKey ? rawKey.replace(/^["']|["']$/g, '').trim() : undefined;
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     const missing = [

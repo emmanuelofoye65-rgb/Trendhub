@@ -9,8 +9,18 @@ import type { Database } from './types'
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
     
-    const rawSupabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const rawSupabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const getEnv = (key: string) => {
+      if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+        return import.meta.env[key];
+      }
+      if (typeof process !== 'undefined' && process.env && process.env[key]) {
+        return process.env[key];
+      }
+      return undefined;
+    };
+
+    const rawSupabaseUrl = getEnv('VITE_SUPABASE_URL') || getEnv('SUPABASE_URL');
+    const rawSupabaseKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('VITE_SUPABASE_PUBLISHABLE_KEY') || getEnv('SUPABASE_ANON_KEY') || getEnv('SUPABASE_PUBLISHABLE_KEY');
 
     const SUPABASE_URL = rawSupabaseUrl ? rawSupabaseUrl.replace(/^["']|["']$/g, '').trim() : undefined;
     const SUPABASE_PUBLISHABLE_KEY = rawSupabaseKey ? rawSupabaseKey.replace(/^["']|["']$/g, '').trim() : undefined;

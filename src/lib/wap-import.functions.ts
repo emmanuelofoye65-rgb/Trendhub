@@ -277,10 +277,15 @@ export const publishImportedProduct = createServerFn({ method: 'POST' })
       }
 
       // 2. Insert into the main products table (default is_active to false so it requires explicit addition to storefront)
+      const title = imported.product_name || 'Imported Product';
+      const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const uniqueSlug = `${baseSlug}-${Math.floor(Math.random() * 10000)}`;
+
       const { error: insertErr } = await context.supabase
         .from('products')
         .insert({
-          title: imported.product_name || 'Imported Product',
+          title,
+          slug: uniqueSlug,
           description: imported.description || '',
           price_naira: imported.price || 0,
           image_urls: imported.image_url ? [imported.image_url] : [],

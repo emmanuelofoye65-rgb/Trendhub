@@ -57,7 +57,7 @@ export function WAPContainer() {
   // Single product import mutation
   const singleImportMutation = useMutation({
     mutationFn: async (url: string) => {
-      const result = await importSingleProduct({ url } as any);
+      const result = await importSingleProduct({ data: { url } });
       if (!result.success) throw new Error(result.error);
       return result.importedData;
     },
@@ -72,7 +72,7 @@ export function WAPContainer() {
   // Batch import mutation
   const batchImportMutation = useMutation({
     mutationFn: async (content: string) => {
-      const result = await importMultipleProducts({ content, isCSV: isCsvMode } as any);
+      const result = await importMultipleProducts({ data: { content, isCSV: isCsvMode } });
       if (!result.success) throw new Error(result.error);
       return result.results;
     },
@@ -88,7 +88,7 @@ export function WAPContainer() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const result = await deleteImportedProduct({ id } as any);
+      const result = await deleteImportedProduct({ data: { id } });
       if (!result.success) throw new Error(result.error);
     },
     onSuccess: () => {
@@ -99,13 +99,13 @@ export function WAPContainer() {
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async (id: string) => {
-      const result = await updateImportedProduct({
+      const result = await updateImportedProduct({ data: {
         id,
         productName: editData.product_name,
         description: editData.description,
         price: editData.price,
         imageUrl: editData.image_url
-      } as any);
+      } });
       if (!result.success) throw new Error(result.error);
       return result.updatedData;
     },
@@ -120,7 +120,7 @@ export function WAPContainer() {
   const publishMutation = useMutation({
     mutationFn: async (id: string) => {
       setPublishingId(id);
-      const result = await publishImportedProduct({ id } as any);
+      const result = await publishImportedProduct({ data: { id } });
       if (!result.success) throw new Error(result.error || 'Failed to publish');
     },
     onSuccess: () => {

@@ -105,7 +105,7 @@ const productInput = z.object({
 
 export const upsertProduct = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => productInput.parse(input))
+  .validator((input: unknown) => productInput.parse(input))
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     if (data.id) {
@@ -124,7 +124,7 @@ export const upsertProduct = createServerFn({ method: "POST" })
 
 export const deleteProduct = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const { error } = await context.supabase.from("products").delete().eq("id", data.id);
@@ -146,7 +146,7 @@ export const adminListOrders = createServerFn({ method: "GET" })
 
 export const markOrderPaid = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const { error } = await context.supabase
@@ -159,7 +159,7 @@ export const markOrderPaid = createServerFn({ method: "POST" })
 
 export const updateSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         bank_name: z.string().trim().max(120).nullable().optional(),

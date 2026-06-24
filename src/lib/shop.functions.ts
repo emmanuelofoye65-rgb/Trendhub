@@ -36,14 +36,14 @@ async function attachSignedImages(
 }
 
 export const listProducts = createServerFn({ method: "GET" })
-  .inputValidator((input: { trending?: boolean; categorySlug?: string; limit?: number } = {}) =>
+  .validator((input: { trending?: boolean; categorySlug?: string; limit?: number } = {}) =>
     z
       .object({
         trending: z.boolean().optional(),
         categorySlug: z.string().optional(),
         limit: z.number().int().positive().max(100).optional(),
       })
-      .parse(input),
+      .parse(input || {}),
   )
   .handler(async ({ data }) => {
     const supabase = getPublicSupabase();
@@ -63,7 +63,7 @@ export const listProducts = createServerFn({ method: "GET" })
   });
 
 export const getProduct = createServerFn({ method: "GET" })
-  .inputValidator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
     const supabase = getPublicSupabase();
     const { data: row } = await supabase

@@ -8,7 +8,7 @@ import { scrapeProductDetails, normalizeUrl } from './product-scraper';
  */
 export const importSingleProduct = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ url: z.string().url() }).parse(input))
+  .validator((input: unknown) => z.object({ url: z.string().url() }).parse(input))
   .handler(async ({ context, data }): Promise<{
     success: boolean;
     importedData?: any;
@@ -72,7 +72,7 @@ export const importSingleProduct = createServerFn({ method: 'POST' })
  */
 export const importMultipleProducts = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ content: z.string(), isCSV: z.boolean() }).parse(input))
+  .validator((input: unknown) => z.object({ content: z.string(), isCSV: z.boolean() }).parse(input))
   .handler(async ({ context, data }): Promise<{
     success: boolean;
     results?: Array<{
@@ -224,7 +224,7 @@ export const fetchImportedProducts = createServerFn({ method: 'GET' })
  */
 export const deleteImportedProduct = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }): Promise<{
     success: boolean;
     error?: string;
@@ -258,7 +258,7 @@ export const deleteImportedProduct = createServerFn({ method: 'POST' })
  */
 export const publishImportedProduct = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }): Promise<{
     success: boolean;
     error?: string;
@@ -315,7 +315,7 @@ export const publishImportedProduct = createServerFn({ method: 'POST' })
  */
 export const updateImportedProduct = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({
       id: z.string().uuid(),
       productName: z.string().optional(),

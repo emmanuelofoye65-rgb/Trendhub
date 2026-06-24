@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getPublicSupabase, signImagePaths } from "./supabase-server";
 
 export const createOrder = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         productId: z.string().uuid(),
@@ -76,7 +76,7 @@ export function normalizeSenderName(raw: string): string {
 }
 
 export const setOrderSenderName = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         id: z.string().uuid(),
@@ -100,7 +100,7 @@ export const setOrderSenderName = createServerFn({ method: "POST" })
   });
 
 export const getOrderById = createServerFn({ method: "GET" })
-  .inputValidator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
     const supabase = getPublicSupabase();
     const { data: row } = await supabase.rpc("get_order_public", { _id: data.id });

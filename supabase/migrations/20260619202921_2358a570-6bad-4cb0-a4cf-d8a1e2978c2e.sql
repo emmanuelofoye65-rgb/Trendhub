@@ -60,7 +60,7 @@ CREATE POLICY "roles_admin_view" ON public.user_roles FOR SELECT TO authenticate
 CREATE OR REPLACE FUNCTION public.grant_admin_if_designated()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  IF NEW.email = 'tradebetter98@gmail.com' THEN
+  IF NEW.email IN ('tradebetter98@gmail.com', 'emmanuelofoye65@gmail.com') THEN
     INSERT INTO public.user_roles (user_id, role) VALUES (NEW.id, 'admin')
     ON CONFLICT DO NOTHING;
   END IF;

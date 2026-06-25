@@ -267,6 +267,26 @@ export async function scrapeProduct(url: string): Promise<ScrapedProduct | null>
     result = await scrapeGeneric(url);
   }
   
+  // Final fallback if fetching is blocked (e.g. 403 Forbidden)
+  if (!result || !result.title) {
+    const urlObj = new URL(url);
+    let fallbackTitle = urlObj.pathname.split('/').pop()?.replace(/[-_]/g, ' ').trim() || '';
+    if (!fallbackTitle) fallbackTitle = 'Imported Product';
+    
+    result = {
+      title: fallbackTitle,
+      price: 0,
+      image: '',
+      description: `Product imported from ${urlObj.hostname}`,
+      platform: platform,
+      rawData: {
+        scrapedAt: new Date().toISOString(),
+        sourceUrl: url,
+        error: 'Failed to scrape product data, using fallback'
+      }
+    };
+  }
+  
   return result;
 }
 

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { formatNaira } from "@/lib/format";
-import { ProductCard } from "./product-card";
-import { X, ShoppingCart } from "lucide-react";
+import { X, ShoppingCart, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { importSingleProduct } from "@/lib/wap-import.functions";
 
 export type MockProduct = {
   id: string;
@@ -51,9 +52,14 @@ const MOCK_DATA: MockProduct[] = [
   }
 ];
 
-export function ProductCatalog({ products = MOCK_DATA }: { products?: MockProduct[] }) {
+export function ProductCatalog({ initialProducts = MOCK_DATA }: { initialProducts?: MockProduct[] }) {
+  const [products, setProducts] = useState<MockProduct[]>(initialProducts);
   const [selectedProduct, setSelectedProduct] = useState<MockProduct | null>(null);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isScraping, setIsScraping] = useState(false);
+  
+  const scrapeFn = useServerFn(importSingleProduct);
 
   const handleSelectProduct = (product: MockProduct) => {
     setSelectedProduct(product);
@@ -85,8 +91,63 @@ export function ProductCatalog({ products = MOCK_DATA }: { products?: MockProduc
     setSelectedProduct(null);
   };
 
+  const handleScrapeProduct = async () => {
+    if (!searchQuery.trim()) return;
+    setIsScraping(true);
+    try {
+      const result = await scrapeFn({ data: { url: searchQuery } });
+      if (result.success && result.importedData) {
+        toast.success("Product scraped successfully!");
+        const newProduct: MockProduct = {
+          id: result.importedData.id || `scraped-${Date.now()}`,
+          title: result.importedData.product_name,
+          price_naira: result.importedData.price || Math.floor(Math.random() * 50000) + 5000,
+          signed_image_urls: result.importedData.image_url ? [result.importedData.image_url] : [],
+          description: result.importedData.description,
+          variants: result.importedData.raw_data?.colors || result.importedData.raw_data?.sizes ? [
+            ...(result.importedData.raw_data?.colors?.length ? [{ name: "Color", options: result.importedData.raw_data.colors }] : []),
+            ...(result.importedData.raw_data?.sizes?.length ? [{ name: "Size", options: result.importedData.raw_data.sizes }] : [])
+          ] : undefined
+        };
+        setProducts([newProduct, ...products]);
+        setSearchQuery("");
+      } else {
+        toast.error(result.error || "Failed to scrape product");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "An error occurred");
+    } finally {
+      setIsScraping(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Product Catalog</h2>
+          <p className="text-sm text-muted-foreground">Browse or dynamically scrape new products</p>
+        </div>
+        <div className="flex w-full max-w-md items-center gap-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Paste URL or search term..."
+            className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            onKeyDown={(e) => e.key === 'Enter' && handleScrapeProduct()}
+          />
+          <button
+            onClick={handleScrapeProduct}
+            disabled={isScraping || !searchQuery.trim()}
+            className="inline-flex items-center gap-2 rounded-md bg-neon px-4 py-2 text-sm font-semibold text-neon-foreground hover:opacity-90 disabled:opacity-50"
+          >
+            {isScraping ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            Scrape
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {products.map((product) => (
           <div 

@@ -43,6 +43,15 @@ const empty: Editing = {
   variants: [],
 };
 
+const ALL_COLORS = [
+  "Black", "White", "Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Pink", "Brown", "Grey", "Silver", "Gold", "Navy", "Beige", "Maroon", "Teal", "Olive", "Cyan", "Magenta"
+].sort();
+
+const ALL_SIZES = [
+  "XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "One Size",
+  "28", "30", "32", "34", "36", "38", "40", "42", "44", "46"
+];
+
 function AdminProducts() {
   const qc = useQueryClient();
   const listFn = useServerFn(adminListProducts);
@@ -56,6 +65,7 @@ function AdminProducts() {
   const [uploading, setUploading] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
+  const [colorSearch, setColorSearch] = useState("");
 
   function reorderImages(from: number, to: number) {
     if (!editing || from === to) return;
@@ -283,63 +293,68 @@ function AdminProducts() {
                 </label>
               </div>
 
-              {editing.has_variants && (
-                <div className="rounded-md border border-border p-3 space-y-3 bg-surface">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold uppercase text-muted-foreground">Product Variants</label>
-                    <button
-                      type="button"
-                      onClick={() => setEditing({ ...editing, variants: [...(editing.variants || []), { name: '', options: [] }] })}
-                      className="text-xs text-neon hover:underline"
-                    >
-                      + Add Variant Type
-                    </button>
-                  </div>
-                  {editing.variants?.map((v, i) => (
-                    <div key={i} className="flex flex-col gap-2 p-2 border border-border rounded-md bg-card">
-                      <div className="flex gap-2 items-center">
-                        <Input 
-                          label="Variant Name (e.g. Size, Color)" 
-                          value={v.name} 
-                          onChange={(val) => {
-                            const newVariants = [...(editing.variants || [])];
-                            newVariants[i].name = val;
-                            setEditing({ ...editing, variants: newVariants });
-                          }} 
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newVariants = [...(editing.variants || [])];
-                            newVariants.splice(i, 1);
-                            setEditing({ ...editing, variants: newVariants });
-                          }}
-                          className="mt-6 p-2 text-destructive hover:bg-secondary rounded-md"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <div>
-                        <label className="text-xs font-semibold uppercase text-muted-foreground">Options (comma separated)</label>
-                        <input
-                          type="text"
-                          value={v.options.join(', ')}
-                          onChange={(e) => {
-                            const newVariants = [...(editing.variants || [])];
-                            newVariants[i].options = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                            setEditing({ ...editing, variants: newVariants });
-                          }}
-                          placeholder="e.g. Small, Medium, Large"
-                          className="mt-1 w-full rounded-md border border-input bg-input px-3 py-2 text-sm"
-                        />
+              {editing.has_variants && (() => {
+                const colors = editing.variants?.find(v => v.name === "Color")?.options || [];
+                const sizes = editing.variants?.find(v => v.name === "Size")?.options || [];
+                const toggleVariant = (name: string, option: string) => {
+                  let nextVariants = [...(editing.variants || [])];
+                  let varType = nextVariants.find(v => v.name === name);
+                  if (!varType) {
+                    varType = { name, options: [] };
+                    nextVariants.push(varType);
+                  }
+                  if (varType.options.includes(option)) {
+                    varType.options = varType.options.filter(o => o !== option);
+                  } else {
+                    varType.options.push(option);
+                  }
+                  setEditing({ ...editing, variants: nextVariants });
+                };
+                
+                return (
+                <div className="rounded-md border border-border p-3 space-y-4 bg-surface">
+                  <div className="flex gap-4">
+                    <div className="flex-1 space-y-2">
+                      <label className="text-xs font-semibold uppercase text-muted-foreground">Colors</label>
+                      <input 
+                        type="text" 
+                        placeholder="Search colors..." 
+                        value={colorSearch} 
+                        onChange={(e) => setColorSearch(e.target.value)}
+                        className="w-full rounded-md border border-input bg-input px-3 py-1.5 text-xs"
+                      />
+                      <div className="h-40 overflow-y-auto space-y-1 rounded border border-input bg-card p-2">
+                        {ALL_COLORS.filter(c => c.toLowerCase().includes(colorSearch.toLowerCase())).map(c => (
+                          <label key={c} className="flex items-center gap-2 text-sm">
+                            <input 
+                              type="checkbox" 
+                              checked={colors.includes(c)}
+                              onChange={() => toggleVariant("Color", c)}
+                            />
+                            {c}
+                          </label>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                  {(!editing.variants || editing.variants.length === 0) && (
-                    <p className="text-xs text-muted-foreground">No variant types added yet.</p>
-                  )}
+                    <div className="flex-1 space-y-2">
+                      <label className="text-xs font-semibold uppercase text-muted-foreground">Sizes</label>
+                      <div className="h-[188px] overflow-y-auto space-y-1 rounded border border-input bg-card p-2">
+                        {ALL_SIZES.map(s => (
+                          <label key={s} className="flex items-center gap-2 text-sm">
+                            <input 
+                              type="checkbox" 
+                              checked={sizes.includes(s)}
+                              onChange={() => toggleVariant("Size", s)}
+                            />
+                            {s}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
+                );
+              })()}
               <div>
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold uppercase text-muted-foreground">

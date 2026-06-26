@@ -1,8 +1,8 @@
 import { MessageCircle } from "lucide-react";
 
 export function WhatsAppFab({ link }: { link?: string | null }) {
-  const href = link && link.trim().length > 0 ? link : "https://wa.me/2348000000000";
-  const url = new URL(href);
+  if (!link || link.trim().length === 0) return null;
+  const url = new URL(link);
   if (!url.searchParams.get("text")) {
     url.searchParams.set("text", "Hello, I want to ask about this product");
   }

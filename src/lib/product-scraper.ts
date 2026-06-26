@@ -1,4 +1,7 @@
 import * as cheerio from 'cheerio';
+import FirecrawlApp from '@mendable/firecrawl-js';
+
+const firecrawl = process.env.FIRECRAWL_API_KEY ? new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY }) : null;
 
 export interface ScrapedProduct {
   title?: string;
@@ -23,6 +26,52 @@ export function detectPlatform(url: string): 'aliexpress' | 'temu' | 'amazon' | 
   if (urlLower.includes('ebay')) return 'ebay';
   
   return 'generic';
+}
+
+/**
+ * Extract using Firecrawl
+ */
+async function scrapeWithFirecrawl(url: string): Promise<ScrapedProduct | null> {
+  if (!firecrawl) return null;
+  try {
+    const res = await firecrawl.scrapeUrl(url, {
+      formats: ['extract'],
+      extract: {
+        schema: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            price: { type: "number" },
+            description: { type: "string" },
+            image: { type: "string" },
+            colors: { type: "array", items: { type: "string" } },
+            sizes: { type: "array", items: { type: "string" } }
+          },
+          required: ["title"]
+        }
+      }
+    });
+
+    if (!res.success || !res.data || !res.data.extract) return null;
+    const data = res.data.extract as any;
+    return {
+      title: data.title,
+      price: typeof data.price === 'number' ? data.price : parseFloat(data.price) || 0,
+      description: data.description,
+      image: data.image,
+      platform: detectPlatform(url),
+      rawData: {
+        scrapedAt: new Date().toISOString(),
+        sourceUrl: url,
+        colors: data.colors,
+        sizes: data.sizes,
+        firecrawl: true
+      }
+    };
+  } catch (error) {
+    console.error('[WAP] Firecrawl scrape error:', error);
+    return null;
+  }
 }
 
 /**
@@ -183,13 +232,19 @@ export async function scrapeProduct(url: string): Promise<ScrapedProduct | null>
   
   let result: ScrapedProduct | null = null;
   
+  if (firecrawl) {
+    result = await scrapeWithFirecrawl(url);
+  }
+  
   // Try platform-specific scraper
-  if (platform === 'aliexpress') {
-    result = await scrapeAliExpress(url);
-  } else if (platform === 'temu') {
-    result = await scrapeTemu(url);
-  } else if (platform === 'amazon') {
-    result = await scrapeAmazon(url);
+  if (!result || !result.title) {
+    if (platform === 'aliexpress') {
+      result = await scrapeAliExpress(url);
+    } else if (platform === 'temu') {
+      result = await scrapeTemu(url);
+    } else if (platform === 'amazon') {
+      result = await scrapeAmazon(url);
+    }
   }
   
   // Fallback to generic scraper if platform-specific fails
@@ -218,6 +273,22 @@ export async function scrapeProduct(url: string): Promise<ScrapedProduct | null>
   }
   
   return result;
+}
+
+/**
+ * Search for a product using Firecrawl
+ */
+export async function searchProductWithFirecrawl(query: string): Promise<string | null> {
+  if (!firecrawl) return null;
+  try {
+    const res = await firecrawl.search(query, { limit: 1 });
+    if (res.success && res.data && res.data.length > 0) {
+      return res.data[0].url || null;
+    }
+  } catch (error) {
+    console.error('[WAP] Firecrawl search error:', error);
+  }
+  return null;
 }
 
 /**

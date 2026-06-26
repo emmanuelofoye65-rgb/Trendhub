@@ -1,10 +1,10 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
-import { scrapeProductDetails, normalizeUrl } from './product-scraper';
+import { scrapeProductDetails, normalizeUrl, searchProductWithFirecrawl } from './product-scraper';
 
 /**
- * Import a single product by URL
+ * Import a single product by URL or search query
  */
 export const importSingleProduct = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
@@ -16,28 +16,39 @@ export const importSingleProduct = createServerFn({ method: 'POST' })
   }> => {
     try {
       const userId = context.userId;
-      const normalizedUrl = normalizeUrl(data.url);
+      let targetUrl = data.url.trim();
+      let isUrl = false;
       
       try {
-        new URL(normalizedUrl);
+        new URL(normalizeUrl(targetUrl));
+        isUrl = true;
+        targetUrl = normalizeUrl(targetUrl);
       } catch (e) {
-        return { success: false, error: 'Invalid URL format' };
+        isUrl = false;
+      }
+      
+      if (!isUrl) {
+        const foundUrl = await searchProductWithFirecrawl(targetUrl);
+        if (!foundUrl) {
+          return { success: false, error: 'Could not find a product URL for your search. Please provide a direct URL.' };
+        }
+        targetUrl = foundUrl;
       }
       
       // Check if URL already imported by this user
       const { data: existing } = await context.supabase
         .from('imported_products')
         .select('id')
-        .eq('source_url', normalizedUrl)
+        .eq('source_url', targetUrl)
         .eq('user_id', userId)
         .single();
       
       if (existing) {
-        return { success: false, error: 'This URL has already been imported' };
+        return { success: false, error: 'This product has already been imported' };
       }
       
       // Scrape product data
-      const scrapedData = await scrapeProductDetails(normalizedUrl);
+      const scrapedData = await scrapeProductDetails(targetUrl);
       
       if (!scrapedData || !scrapedData.title) {
         return { success: false, error: 'Could not extract product information from the URL' };

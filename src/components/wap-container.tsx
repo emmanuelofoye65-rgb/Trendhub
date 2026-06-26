@@ -194,12 +194,12 @@ export function WAPContainer() {
             <CardHeader>
               <CardTitle>Import Single Product</CardTitle>
               <CardDescription>
-                Paste a product link from AliExpress, Temu, Amazon, or any e-commerce site
+                Search via Google (Firecrawl) or paste a product link from any e-commerce site
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                placeholder="https://example.com/product/..."
+                placeholder="Product name (e.g. iPhone 15 Pro) or URL"
                 value={singleUrl}
                 onChange={(e) => setSingleUrl(e.target.value)}
                 onKeyPress={(e) => {

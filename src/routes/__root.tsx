@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { Toaster } from "sonner";
 import { SiteHeader } from "@/components/site-header";
 import { WhatsAppFab } from "@/components/whatsapp-fab";
 import { getSettings } from "@/lib/shop.functions";
@@ -159,6 +160,7 @@ function Shell() {
         © {new Date().getFullYear()} TrendRush NG · PlugMarket · HotPick NG
       </footer>
       <WhatsAppFab link={settings?.whatsapp_link} />
+      <Toaster theme="dark" position="top-center" richColors />
     </div>
   );
 }

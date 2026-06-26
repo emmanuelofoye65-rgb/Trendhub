@@ -101,6 +101,7 @@ const productInput = z.object({
   is_trending: z.boolean().default(false),
   is_active: z.boolean().default(true),
   stock: z.number().int().min(0).default(0),
+  variants: z.any().optional(),
 });
 
 export const upsertProduct = createServerFn({ method: "POST" })

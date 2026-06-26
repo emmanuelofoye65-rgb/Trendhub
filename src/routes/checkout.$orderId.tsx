@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getOrderById, setOrderSenderName, normalizeSenderName } from "@/lib/orders.functions";
+import { getOrderById, setOrderSenderName, normalizeSenderName, initializePaystack } from "@/lib/orders.functions";
 import { getSettings } from "@/lib/shop.functions";
 import { formatNaira } from "@/lib/format";
 import { Copy, Check, Loader2, AlertTriangle } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/checkout/$orderId")({
   head: () => ({
@@ -30,6 +31,7 @@ function Checkout() {
   const { orderId } = Route.useParams();
   const router = useRouter();
   const saveSender = useServerFn(setOrderSenderName);
+  const paystackCheckout = useServerFn(initializePaystack);
   const { data: order } = useSuspenseQuery(
     queryOptions({
       queryKey: ["order", orderId],
@@ -44,6 +46,7 @@ function Checkout() {
   const [confirmed, setConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"bank_transfer" | "paystack" | null>(null);
 
   if (!order) {
     return (
@@ -59,6 +62,7 @@ function Checkout() {
   const copy = async (label: string, value: string) => {
     await navigator.clipboard.writeText(value);
     setCopied(label);
+    toast.success(`${label} copied!`);
     setTimeout(() => setCopied(null), 1500);
   };
 
@@ -80,8 +84,10 @@ function Checkout() {
     setSaving(true);
     try {
       await saveSender({ data: { id: orderId, senderName: normalized } });
+      toast.success("Payment details saved!");
       await router.invalidate();
     } catch (e: any) {
+      toast.error(e?.message ?? "Could not save sender name");
       setErr(e?.message ?? "Could not save sender name");
     } finally {
       setSaving(false);
@@ -93,6 +99,24 @@ function Checkout() {
       <div className="mb-6">
         <div className="text-xs uppercase text-muted-foreground">Order</div>
         <div className="font-mono text-xs">{order.id}</div>
+        
+        {order.product && (
+          <div className="mt-2 flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+            <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded bg-surface">
+              {order.product.signed_image_urls?.[0] ? (
+                <img src={order.product.signed_image_urls[0]} alt="" className="h-full w-full object-cover" />
+              ) : null}
+            </div>
+            <div>
+              <div className="font-semibold text-sm">{order.product.title}</div>
+              {order.variants && Object.keys(order.variants).length > 0 && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {Object.entries(order.variants).map(([k, v]) => `${k}: ${v}`).join(", ")}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5">
@@ -110,69 +134,123 @@ function Checkout() {
         </div>
 
         {order.status === "pending" && !hasSender && (
-          <div className="mt-5 space-y-4 rounded-lg border border-orange/40 bg-orange/5 p-4">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange" />
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-orange">Before you transfer</p>
-                <p className="text-xs text-muted-foreground">
-                  We match your payment using <strong>your bank account name</strong> and the{" "}
-                  <strong>exact amount</strong>. If they don't match, your order will not be
-                  auto-confirmed.
-                </p>
-              </div>
+          <div className="mt-5 space-y-4 rounded-lg border border-border bg-card p-4">
+            <h3 className="font-semibold text-sm">Select Payment Method</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setPaymentMethod("bank_transfer")}
+                className={`flex flex-col items-center justify-center rounded-lg border p-4 transition-colors ${
+                  paymentMethod === "bank_transfer" ? "border-neon bg-neon/10" : "border-border hover:border-muted-foreground"
+                }`}
+              >
+                <span className="font-bold text-sm">Bank Transfer</span>
+              </button>
+              <button
+                onClick={() => setPaymentMethod("paystack")}
+                className={`flex flex-col items-center justify-center rounded-lg border p-4 transition-colors ${
+                  paymentMethod === "paystack" ? "border-neon bg-neon/10" : "border-border hover:border-muted-foreground"
+                }`}
+              >
+                <span className="font-bold text-sm">Paystack</span>
+              </button>
             </div>
 
-            <div>
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Sender's full name (as on your bank account)
-              </label>
-              <input
-                value={senderName}
-                onChange={(e) => setSenderName(e.target.value)}
-                placeholder="e.g. Barack Hussein Obama"
-                className="mt-1 w-full rounded-md border border-input bg-input px-3 py-2 text-sm"
-              />
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                This MUST match the name on the bank account you are paying from.
-              </p>
-              {senderName && (
-                <p className="mt-1 text-[11px]">
-                  <span className="text-muted-foreground">We'll match: </span>
-                  <span className={nameValid ? "font-mono text-neon" : "font-mono text-orange"}>
-                    {normalized || "—"}
+            {paymentMethod === "bank_transfer" && (
+              <div className="mt-5 space-y-4 rounded-lg border border-orange/40 bg-orange/5 p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-orange">Before you transfer</p>
+                    <p className="text-xs text-muted-foreground">
+                      We match your payment using <strong>your bank account name</strong> and the{" "}
+                      <strong>exact amount</strong>. If they don't match, your order will not be
+                      auto-confirmed.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Sender's full name (as on your bank account)
+                  </label>
+                  <input
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    placeholder="e.g. Barack Hussein Obama"
+                    className="mt-1 w-full rounded-md border border-input bg-input px-3 py-2 text-sm"
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    This MUST match the name on the bank account you are paying from.
+                  </p>
+                  {senderName && (
+                    <p className="mt-1 text-[11px]">
+                      <span className="text-muted-foreground">We'll match: </span>
+                      <span className={nameValid ? "font-mono text-neon" : "font-mono text-orange"}>
+                        {normalized || "—"}
+                      </span>
+                    </p>
+                  )}
+                </div>
+
+                <label className="flex cursor-pointer items-start gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={confirmed}
+                    onChange={(e) => setConfirmed(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-[color:var(--color-neon)]"
+                  />
+                  <span className="text-muted-foreground">
+                    I confirm I will send the <strong className="text-neon">EXACT amount</strong>{" "}
+                    shown below — not a rounded or different amount.
                   </span>
-                </p>
-              )}
-            </div>
+                </label>
 
-            <label className="flex cursor-pointer items-start gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked={confirmed}
-                onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-[color:var(--color-neon)]"
-              />
-              <span className="text-muted-foreground">
-                I confirm I will send the <strong className="text-neon">EXACT amount</strong>{" "}
-                shown below — not a rounded or different amount.
-              </span>
-            </label>
+                {err && (
+                  <div className="rounded-md border border-destructive bg-destructive/10 p-2 text-xs text-destructive">
+                    {err}
+                  </div>
+                )}
 
-            {err && (
-              <div className="rounded-md border border-destructive bg-destructive/10 p-2 text-xs text-destructive">
-                {err}
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex w-full items-center justify-center gap-2 rounded-md bg-neon px-4 py-3 font-bold text-neon-foreground shadow-neon disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Save & show bank details
+                </button>
               </div>
             )}
 
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-neon px-4 py-3 font-bold text-neon-foreground shadow-neon disabled:opacity-50"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Save & show bank details
-            </button>
+            {paymentMethod === "paystack" && (
+              <div className="mt-5 space-y-4 rounded-lg p-4">
+                {err && (
+                  <div className="rounded-md border border-destructive bg-destructive/10 p-2 text-xs text-destructive mb-4">
+                    {err}
+                  </div>
+                )}
+                <button
+                  onClick={async () => {
+                    setErr(null);
+                    setSaving(true);
+                    try {
+                      const res = await paystackCheckout({ data: { id: orderId } });
+                      window.location.href = res.authorizationUrl;
+                    } catch(e: any) {
+                      toast.error(e?.message ?? "Failed to initialize Paystack");
+                      setErr(e?.message ?? "Failed to initialize Paystack");
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={saving}
+                  className="flex w-full items-center justify-center gap-2 rounded-md bg-[#0BA4DB] px-4 py-3 font-bold text-white shadow-neon disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Pay with Paystack
+                </button>
+              </div>
+            )}
           </div>
         )}
 

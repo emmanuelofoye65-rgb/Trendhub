@@ -58,6 +58,11 @@ function MyOrders() {
             </div>
             <div className="flex-1">
               <div className="font-semibold">{o.products?.title ?? "Product"}</div>
+              {o.variants && Object.keys(o.variants).length > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  {Object.entries(o.variants).map(([k, v]) => `${k}: ${v}`).join(", ")}
+                </div>
+              )}
               <div className="text-xs text-muted-foreground">
                 {new Date(o.created_at).toLocaleString()} · {formatNaira(o.unique_amount)}
               </div>

@@ -29,159 +29,27 @@ export function detectPlatform(url: string): 'aliexpress' | 'temu' | 'amazon' | 
  * Scrape product from AliExpress
  */
 async function scrapeAliExpress(url: string): Promise<ScrapedProduct | null> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    
-    if (!response.ok) return null;
-    
-    const html = await response.text();
-    const $ = cheerio.load(html);
-    
-    // Extract product name from h1 or title
-    const title = $('h1').first().text().trim() || 
-                       $('title').text().split('-')[0].trim();
-    
-    // Extract price - AliExpress typically has price data in script tags
-    let price: number | undefined;
-    const priceText = $('[class*="price"]').first().text();
-    const priceMatch = priceText.match(/[\d.]+/);
-    if (priceMatch) {
-      price = parseFloat(priceMatch[0]);
-    }
-    
-    // Extract image
-    const image = $('img[class*="product"]').first().attr('src') ||
-                     $('img[class*="preview"]').first().attr('src') ||
-                     $('img').first().attr('src');
-    
-    // Extract description
-    const description = $('[class*="description"]').text().trim().substring(0, 500);
-    
-    return {
-      title,
-      price,
-      image,
-      description,
-      platform: 'aliexpress',
-      rawData: {
-        scrapedAt: new Date().toISOString(),
-        sourceUrl: url
-      }
-    };
-  } catch (error) {
-    console.error('[WAP] AliExpress scrape error:', error);
-    return null;
-  }
+  const result = await scrapeGeneric(url);
+  if (result) result.platform = 'aliexpress';
+  return result;
 }
 
 /**
  * Scrape product from Temu
  */
 async function scrapeTemu(url: string): Promise<ScrapedProduct | null> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    
-    if (!response.ok) return null;
-    
-    const html = await response.text();
-    const $ = cheerio.load(html);
-    
-    // Extract product name
-    const title = $('h1').first().text().trim() || 
-                       $('[class*="product-title"]').first().text().trim();
-    
-    // Extract price
-    let price: number | undefined;
-    const priceElements = $('[class*="price"]');
-    priceElements.each((_, el) => {
-      const text = $(el).text();
-      const match = text.match(/\$?([\d.]+)/);
-      if (match && !price) {
-        price = parseFloat(match[1]);
-      }
-    });
-    
-    // Extract image
-    const image = $('img[class*="product"]').first().attr('src') ||
-                     $('img[class*="main"]').first().attr('src') ||
-                     $('img').first().attr('src');
-    
-    // Extract description
-    const description = $('[class*="desc"]').text().trim().substring(0, 500);
-    
-    return {
-      title,
-      price,
-      image,
-      description,
-      platform: 'temu',
-      rawData: {
-        scrapedAt: new Date().toISOString(),
-        sourceUrl: url
-      }
-    };
-  } catch (error) {
-    console.error('[WAP] Temu scrape error:', error);
-    return null;
-  }
+  const result = await scrapeGeneric(url);
+  if (result) result.platform = 'temu';
+  return result;
 }
 
 /**
  * Scrape product from Amazon
  */
 async function scrapeAmazon(url: string): Promise<ScrapedProduct | null> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    
-    if (!response.ok) return null;
-    
-    const html = await response.text();
-    const $ = cheerio.load(html);
-    
-    // Extract product name
-    const title = $('#productTitle').text().trim() || $('h1').first().text().trim();
-    
-    // Extract price
-    let price: number | undefined;
-    const priceText = $('.a-price-whole').first().text();
-    const priceMatch = priceText.match(/[\d.]+/);
-    if (priceMatch) {
-      price = parseFloat(priceMatch[0]);
-    }
-    
-    // Extract image
-    const image = $('#landingImage').attr('src') || $('img[class*="a-dynamic-image"]').first().attr('src');
-    
-    // Extract description
-    const description = $('#feature-bullets').text().trim().substring(0, 500);
-    
-    return {
-      title,
-      price,
-      image,
-      description,
-      platform: 'amazon',
-      rawData: {
-        scrapedAt: new Date().toISOString(),
-        sourceUrl: url
-      }
-    };
-  } catch (error) {
-    console.error('[WAP] Amazon scrape error:', error);
-    return null;
-  }
+  const result = await scrapeGeneric(url);
+  if (result) result.platform = 'amazon';
+  return result;
 }
 
 /**
@@ -191,7 +59,9 @@ async function scrapeGeneric(url: string): Promise<ScrapedProduct | null> {
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
       }
     });
     
@@ -200,26 +70,84 @@ async function scrapeGeneric(url: string): Promise<ScrapedProduct | null> {
     const html = await response.text();
     const $ = cheerio.load(html);
     
-    // Extract product name from common selectors
-    const title = $('h1').first().text().trim() || 
-                       $('[class*="product-title"]').first().text().trim() ||
-                       $('title').text().split('-')[0].trim();
-    
-    // Extract price
+    let title: string | undefined;
+    let description: string | undefined;
+    let image: string | undefined;
     let price: number | undefined;
-    const priceText = $('[class*="price"]').first().text();
-    const priceMatch = priceText.match(/[\d.]+/);
-    if (priceMatch) {
-      price = parseFloat(priceMatch[0]);
+    const colors: string[] = [];
+    const sizes: string[] = [];
+
+    // 1. Try to parse JSON-LD (Schema.org data)
+    const jsonLdScripts = $('script[type="application/ld+json"]');
+    jsonLdScripts.each((_, el) => {
+      try {
+        const data = JSON.parse($(el).html() || '{}');
+        const products = Array.isArray(data) ? data : [data];
+        
+        for (const item of products) {
+          if (item['@type'] === 'Product' || item['@type'] === 'ProductGroup') {
+            if (item.name) title = title || item.name;
+            if (item.description) description = description || item.description;
+            if (item.image) {
+              image = image || (Array.isArray(item.image) ? item.image[0] : item.image);
+            }
+            if (item.offers) {
+              const offer = Array.isArray(item.offers) ? item.offers[0] : item.offers;
+              if (offer.price) price = price || parseFloat(offer.price);
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore parsing errors for JSON-LD
+      }
+    });
+
+    // 2. Try Open Graph tags
+    title = title || $('meta[property="og:title"]').attr('content');
+    description = description || $('meta[property="og:description"]').attr('content');
+    image = image || $('meta[property="og:image"]').attr('content');
+
+    // 3. Try standard meta tags
+    title = title || $('meta[name="title"]').attr('content');
+    description = description || $('meta[name="description"]').attr('content');
+
+    // 4. Fallback to common selectors
+    title = title || $('h1').first().text().trim() || 
+                    $('[class*="product-title"]').first().text().trim() ||
+                    $('title').text().split('-')[0].trim();
+    
+    if (!price) {
+      const priceText = $('[class*="price"], [id*="price"], .price, .product-price').first().text();
+      const priceMatch = priceText.match(/[\d.]+/);
+      if (priceMatch) {
+        price = parseFloat(priceMatch[0]);
+      }
     }
     
-    // Extract image
-    const image = $('img').first().attr('src');
+    image = image || $('img[class*="product"]').first().attr('src') || $('img').first().attr('src');
     
-    // Extract description
-    const description = $('[class*="description"]').first().text().trim().substring(0, 500) ||
-                       $('[class*="details"]').first().text().trim().substring(0, 500);
+    description = description || $('[class*="description"]').first().text().trim() ||
+                       $('[class*="details"]').first().text().trim();
     
+    if (description && description.length > 1000) {
+      description = description.substring(0, 1000) + '...';
+    }
+
+    // Try to extract colors and sizes from common dropdowns or selectors
+    $('[class*="color"], [id*="color"], select[name*="color"] option').each((_, el) => {
+       const text = $(el).text().trim() || $(el).attr('value') || $(el).attr('title');
+       if (text && text.length > 0 && text.length < 20 && !colors.includes(text)) {
+         colors.push(text);
+       }
+    });
+
+    $('[class*="size"], [id*="size"], select[name*="size"] option').each((_, el) => {
+       const text = $(el).text().trim() || $(el).attr('value') || $(el).attr('title');
+       if (text && text.length > 0 && text.length < 15 && !sizes.includes(text)) {
+         sizes.push(text);
+       }
+    });
+
     return {
       title,
       price,
@@ -228,7 +156,9 @@ async function scrapeGeneric(url: string): Promise<ScrapedProduct | null> {
       platform: 'generic',
       rawData: {
         scrapedAt: new Date().toISOString(),
-        sourceUrl: url
+        sourceUrl: url,
+        colors: colors.length > 0 ? colors : undefined,
+        sizes: sizes.length > 0 ? sizes : undefined
       }
     };
   } catch (error) {

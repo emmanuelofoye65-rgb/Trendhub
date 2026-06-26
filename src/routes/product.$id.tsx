@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { getProduct, getSettings } from "@/lib/shop.functions";
 import { createOrder } from "@/lib/orders.functions";
 import { formatNaira } from "@/lib/format";
@@ -47,6 +48,7 @@ function ProductPage() {
   const [guestEmail, setGuestEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
   if (!product) {
     return (
@@ -59,11 +61,31 @@ function ProductPage() {
     );
   }
 
+  // Pre-select first option for variants if not selected
+  useEffect(() => {
+    if (product?.variants && product.variants.length > 0) {
+      const initial: Record<string, string> = {};
+      product.variants.forEach((v: any) => {
+        if (v.options && v.options.length > 0) {
+          initial[v.name] = v.options[0];
+        }
+      });
+      setSelectedVariants(initial);
+    }
+  }, [product?.variants]);
+
   async function handleBuy(asGuest: boolean) {
     setError(null);
     setSubmitting(true);
     try {
-      const payload: any = { productId: id, quantity: 1 };
+      if (product.variants && product.variants.length > 0) {
+        const missing = product.variants.find((v: any) => !selectedVariants[v.name] && v.options.length > 0);
+        if (missing) {
+          throw new Error(`Please select a ${missing.name}`);
+        }
+      }
+
+      const payload: any = { productId: id, quantity: 1, variants: selectedVariants };
       if (user) {
         payload.userId = user.id;
       } else if (asGuest) {
@@ -76,8 +98,10 @@ function ProductPage() {
       }
       const { id: orderId } = await createOrderFn({ data: payload });
       await router.invalidate();
+      toast.success("Order created! Redirecting to checkout...");
       navigate({ to: "/checkout/$orderId", params: { orderId } });
     } catch (e: any) {
+      toast.error(e?.message ?? "Could not create order");
       setError(e?.message ?? "Could not create order");
     } finally {
       setSubmitting(false);
@@ -141,6 +165,32 @@ function ProductPage() {
               Out of stock
             </div>
           )}
+
+          {product.variants && product.variants.length > 0 && (
+            <div className="mt-6 space-y-4 border-y border-border py-4">
+              {product.variants.map((v: any, i: number) => (
+                <div key={i}>
+                  <label className="text-sm font-semibold uppercase text-muted-foreground">{v.name}</label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {v.options.map((opt: string, j: number) => (
+                      <button
+                        key={j}
+                        onClick={() => setSelectedVariants({ ...selectedVariants, [v.name]: opt })}
+                        className={`rounded-md border px-4 py-2 text-sm transition-colors ${
+                          selectedVariants[v.name] === opt
+                            ? "border-neon bg-neon/10 text-neon font-medium"
+                            : "border-border hover:border-muted-foreground bg-surface"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
             {product.description || "No description."}
           </p>

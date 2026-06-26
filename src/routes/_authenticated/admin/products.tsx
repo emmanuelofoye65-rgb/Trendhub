@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import { adminListProducts, upsertProduct, deleteProduct } from "@/lib/admin.functions";
 import { listCategories } from "@/lib/shop.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,8 @@ type Editing = {
   is_trending: boolean;
   is_active: boolean;
   stock: number;
+  has_variants?: boolean;
+  variants?: { name: string; options: string[] }[];
 };
 
 const empty: Editing = {
@@ -36,6 +39,8 @@ const empty: Editing = {
   is_trending: false,
   is_active: true,
   stock: 0,
+  has_variants: false,
+  variants: [],
 };
 
 function AdminProducts() {
@@ -65,13 +70,23 @@ function AdminProducts() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "products"] });
       qc.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Product saved successfully!");
       setEditing(null);
     },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to save product");
+    }
   });
 
   const del = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "products"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "products"] });
+      toast.success("Product deleted successfully!");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to delete product");
+    }
   });
 
   async function handleUpload(files: FileList | null) {
@@ -155,6 +170,8 @@ function AdminProducts() {
                         is_trending: p.is_trending,
                         is_active: p.is_active,
                         stock: p.stock,
+                        has_variants: p.variants && p.variants.length > 0,
+                        variants: p.variants || [],
                       })
                     }
                     className="rounded p-1 hover:bg-secondary"
@@ -239,7 +256,7 @@ function AdminProducts() {
                   ))}
                 </select>
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-4 flex-wrap">
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -256,7 +273,73 @@ function AdminProducts() {
                   />
                   Active
                 </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={editing.has_variants}
+                    onChange={(e) => setEditing({ ...editing, has_variants: e.target.checked, variants: e.target.checked ? (editing.variants?.length ? editing.variants : [{ name: 'Color', options: [] }]) : [] })}
+                  />
+                  Has Variants
+                </label>
               </div>
+
+              {editing.has_variants && (
+                <div className="rounded-md border border-border p-3 space-y-3 bg-surface">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">Product Variants</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditing({ ...editing, variants: [...(editing.variants || []), { name: '', options: [] }] })}
+                      className="text-xs text-neon hover:underline"
+                    >
+                      + Add Variant Type
+                    </button>
+                  </div>
+                  {editing.variants?.map((v, i) => (
+                    <div key={i} className="flex flex-col gap-2 p-2 border border-border rounded-md bg-card">
+                      <div className="flex gap-2 items-center">
+                        <Input 
+                          label="Variant Name (e.g. Size, Color)" 
+                          value={v.name} 
+                          onChange={(val) => {
+                            const newVariants = [...(editing.variants || [])];
+                            newVariants[i].name = val;
+                            setEditing({ ...editing, variants: newVariants });
+                          }} 
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newVariants = [...(editing.variants || [])];
+                            newVariants.splice(i, 1);
+                            setEditing({ ...editing, variants: newVariants });
+                          }}
+                          className="mt-6 p-2 text-destructive hover:bg-secondary rounded-md"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold uppercase text-muted-foreground">Options (comma separated)</label>
+                        <input
+                          type="text"
+                          value={v.options.join(', ')}
+                          onChange={(e) => {
+                            const newVariants = [...(editing.variants || [])];
+                            newVariants[i].options = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                            setEditing({ ...editing, variants: newVariants });
+                          }}
+                          placeholder="e.g. Small, Medium, Large"
+                          className="mt-1 w-full rounded-md border border-input bg-input px-3 py-2 text-sm"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {(!editing.variants || editing.variants.length === 0) && (
+                    <p className="text-xs text-muted-foreground">No variant types added yet.</p>
+                  )}
+                </div>
+              )}
               <div>
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold uppercase text-muted-foreground">

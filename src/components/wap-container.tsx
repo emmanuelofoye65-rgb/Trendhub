@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,6 +30,7 @@ interface ImportedProduct {
   source_url: string;
   status: string;
   created_at: string;
+  raw_data?: Record<string, any>;
 }
 
 export function WAPContainer() {
@@ -63,9 +65,11 @@ export function WAPContainer() {
     },
     onSuccess: () => {
       setSingleUrl('');
-      setSuccessMessage('Product imported successfully!');
+      toast.success('Product imported successfully!');
       refetchProducts();
-      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to import product');
     }
   });
 
@@ -78,10 +82,12 @@ export function WAPContainer() {
     },
     onSuccess: (results) => {
       const successCount = results?.filter((r: any) => r.status === 'success').length || 0;
-      setSuccessMessage(`Successfully imported ${successCount} products!`);
+      toast.success(`Successfully imported ${successCount} products!`);
       setBatchContent('');
       refetchProducts();
-      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to import products');
     }
   });
 
@@ -92,7 +98,11 @@ export function WAPContainer() {
       if (!result.success) throw new Error(result.error);
     },
     onSuccess: () => {
+      toast.success('Product deleted successfully');
       refetchProducts();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to delete product');
     }
   });
 
@@ -124,12 +134,12 @@ export function WAPContainer() {
       if (!result.success) throw new Error(result.error || 'Failed to publish');
     },
     onSuccess: () => {
-      setSuccessMessage('Product published to storefront successfully!');
+      toast.success('Product published to storefront successfully!');
       setPublishingId(null);
       refetchProducts();
-      setTimeout(() => setSuccessMessage(''), 3000);
     },
-    onError: () => {
+    onError: (error) => {
+      toast.error(error.message || 'Failed to publish product');
       setPublishingId(null);
     }
   });
@@ -381,7 +391,28 @@ export function WAPContainer() {
                             </p>
                           )}
 
-                          <div className="flex items-center gap-4 text-sm">
+                          {product.raw_data && (product.raw_data.colors || product.raw_data.sizes) && (
+                            <div className="flex flex-col gap-1 mt-2">
+                              {product.raw_data.colors && product.raw_data.colors.length > 0 && (
+                                <div className="text-xs flex gap-1 items-center flex-wrap">
+                                  <span className="font-semibold text-gray-500">Colors:</span>
+                                  {product.raw_data.colors.map((c: string, i: number) => (
+                                    <Badge key={i} variant="outline" className="text-[10px] py-0">{c}</Badge>
+                                  ))}
+                                </div>
+                              )}
+                              {product.raw_data.sizes && product.raw_data.sizes.length > 0 && (
+                                <div className="text-xs flex gap-1 items-center flex-wrap">
+                                  <span className="font-semibold text-gray-500">Sizes:</span>
+                                  {product.raw_data.sizes.map((s: string, i: number) => (
+                                    <Badge key={i} variant="outline" className="text-[10px] py-0">{s}</Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-4 text-sm mt-2">
                             {product.price && (
                               <span className="font-medium">
                                 ${product.price.toFixed(2)}

@@ -43,6 +43,11 @@ function AdminOrders() {
             <tr key={o.id} className="border-t border-border">
               <td className="px-3 py-2">
                 <div className="font-semibold">{o.products?.title ?? "—"}</div>
+                {o.variants && Object.keys(o.variants).length > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    {Object.entries(o.variants).map(([k, v]) => `${k}: ${v}`).join(", ")}
+                  </div>
+                )}
                 <div className="font-mono text-xs text-muted-foreground">{o.id.slice(0, 8)}…</div>
               </td>
               <td className="px-3 py-2 text-xs">

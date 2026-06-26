@@ -1,0 +1,31 @@
+import { o as __toESM } from "../_runtime.mjs";
+import { s as require_react } from "../_libs/@radix-ui/react-collection+[...].mjs";
+import { t as supabase } from "./client-Dj_uQScw.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/use-auth-BN2qcMpl.js
+var import_react = /* @__PURE__ */ __toESM(require_react());
+function useAuth() {
+	const [session, setSession] = (0, import_react.useState)(null);
+	const [user, setUser] = (0, import_react.useState)(null);
+	const [loading, setLoading] = (0, import_react.useState)(true);
+	(0, import_react.useEffect)(() => {
+		const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+			setSession(s);
+			setUser(s?.user ?? null);
+		});
+		supabase.auth.getSession().then(({ data }) => {
+			setSession(data.session);
+			setUser(data.session?.user ?? null);
+			setLoading(false);
+		});
+		return () => {
+			sub.subscription.unsubscribe();
+		};
+	}, []);
+	return {
+		session,
+		user,
+		loading
+	};
+}
+//#endregion
+export { useAuth as t };

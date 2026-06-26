@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import FirecrawlApp from '@mendable/firecrawl-js';
+import { z } from 'zod';
 
 const firecrawl = process.env.FIRECRAWL_API_KEY ? new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY }) : null;
 
@@ -34,26 +35,22 @@ export function detectPlatform(url: string): 'aliexpress' | 'temu' | 'amazon' | 
 async function scrapeWithFirecrawl(url: string): Promise<ScrapedProduct | null> {
   if (!firecrawl) return null;
   try {
-    const res = await firecrawl.scrapeUrl(url, {
-      formats: ['extract'],
-      extract: {
-        schema: {
-          type: "object",
-          properties: {
-            title: { type: "string" },
-            price: { type: "number" },
-            description: { type: "string" },
-            image: { type: "string" },
-            colors: { type: "array", items: { type: "string" } },
-            sizes: { type: "array", items: { type: "string" } }
-          },
-          required: ["title"]
-        }
-      }
+    const res = await firecrawl.scrape(url, {
+      formats: [{
+        type: 'json',
+        schema: z.object({
+          title: z.string(),
+          price: z.number().optional(),
+          description: z.string().optional(),
+          image: z.string().optional(),
+          colors: z.array(z.string()).optional(),
+          sizes: z.array(z.string()).optional()
+        })
+      }]
     });
 
-    if (!res.success || !res.data || !res.data.extract) return null;
-    const data = res.data.extract as any;
+    if (!res || !res.json) return null;
+    const data = res.json as any;
     return {
       title: data.title,
       price: typeof data.price === 'number' ? data.price : parseFloat(data.price) || 0,
@@ -281,9 +278,9 @@ export async function scrapeProduct(url: string): Promise<ScrapedProduct | null>
 export async function searchProductWithFirecrawl(query: string): Promise<string | null> {
   if (!firecrawl) return null;
   try {
-    const res = await firecrawl.search(query, { limit: 1 });
-    if (res.success && res.data && res.data.length > 0) {
-      return res.data[0].url || null;
+    const res = await firecrawl.search(query);
+    if (res && res.web && res.web.length > 0 && 'url' in res.web[0]) {
+      return (res.web[0] as any).url || null;
     }
   } catch (error) {
     console.error('[WAP] Firecrawl search error:', error);

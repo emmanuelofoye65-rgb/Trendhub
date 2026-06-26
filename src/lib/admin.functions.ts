@@ -109,14 +109,15 @@ export const upsertProduct = createServerFn({ method: "POST" })
   .validator((input: unknown) => productInput.parse(input))
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
+    const { variants, ...dbData } = data;
     if (data.id) {
-      const { error } = await context.supabase.from("products").update(data).eq("id", data.id);
+      const { error } = await context.supabase.from("products").update(dbData).eq("id", data.id);
       if (error) throw error;
       return { id: data.id };
     }
     const { data: row, error } = await context.supabase
       .from("products")
-      .insert(data)
+      .insert(dbData)
       .select("id")
       .single();
     if (error) throw error;

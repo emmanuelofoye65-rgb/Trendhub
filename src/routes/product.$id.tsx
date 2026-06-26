@@ -63,23 +63,25 @@ function ProductPage() {
 
   // Pre-select first option for variants if not selected
   useEffect(() => {
-    if (product?.variants && product.variants.length > 0) {
+    const p = product as any;
+    if (p?.variants && p.variants.length > 0) {
       const initial: Record<string, string> = {};
-      product.variants.forEach((v: any) => {
+      p.variants.forEach((v: any) => {
         if (v.options && v.options.length > 0) {
           initial[v.name] = v.options[0];
         }
       });
       setSelectedVariants(initial);
     }
-  }, [product?.variants]);
+  }, [product]);
 
   async function handleBuy(asGuest: boolean) {
     setError(null);
     setSubmitting(true);
     try {
-      if (product.variants && product.variants.length > 0) {
-        const missing = product.variants.find((v: any) => !selectedVariants[v.name] && v.options.length > 0);
+      const p = product as any;
+      if (p?.variants && p.variants.length > 0) {
+        const missing = p.variants.find((v: any) => !selectedVariants[v.name] && v.options.length > 0);
         if (missing) {
           throw new Error(`Please select a ${missing.name}`);
         }
@@ -166,9 +168,9 @@ function ProductPage() {
             </div>
           )}
 
-          {product.variants && product.variants.length > 0 && (
+          {(product as any).variants && (product as any).variants.length > 0 && (
             <div className="mt-6 space-y-4 border-y border-border py-4">
-              {product.variants.map((v: any, i: number) => (
+              {(product as any).variants.map((v: any, i: number) => (
                 <div key={i}>
                   <label className="text-sm font-semibold uppercase text-muted-foreground">{v.name}</label>
                   <div className="mt-2 flex flex-wrap gap-2">

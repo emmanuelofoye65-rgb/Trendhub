@@ -59,7 +59,7 @@ export const importSingleProduct = createServerFn({ method: 'POST' })
         .from('imported_products')
         .insert({
           user_id: userId,
-          source_url: normalizedUrl,
+          source_url: targetUrl,
           platform: scrapedData.platform,
           product_name: scrapedData.title,
           description: scrapedData.description,
@@ -305,12 +305,13 @@ export const publishImportedProduct = createServerFn({ method: 'POST' })
       const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       const uniqueSlug = `${baseSlug}-${Math.floor(Math.random() * 10000)}`;
 
+      const rawData = imported.raw_data as any;
       const variants = [];
-      if (imported.raw_data?.colors && imported.raw_data.colors.length > 0) {
-        variants.push({ name: 'Color', options: imported.raw_data.colors });
+      if (rawData?.colors && rawData.colors.length > 0) {
+        variants.push({ name: 'Color', options: rawData.colors });
       }
-      if (imported.raw_data?.sizes && imported.raw_data.sizes.length > 0) {
-        variants.push({ name: 'Size', options: imported.raw_data.sizes });
+      if (rawData?.sizes && rawData.sizes.length > 0) {
+        variants.push({ name: 'Size', options: rawData.sizes });
       }
 
       const { error: insertErr } = await context.supabase

@@ -109,9 +109,9 @@ function Checkout() {
             </div>
             <div>
               <div className="font-semibold text-sm">{order.product.title}</div>
-              {order.variants && Object.keys(order.variants).length > 0 && (
+              {(order as any).variants && Object.keys((order as any).variants).length > 0 && (
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  {Object.entries(order.variants).map(([k, v]) => `${k}: ${v}`).join(", ")}
+                  {Object.entries((order as any).variants).map(([k, v]) => `${k}: ${v}`).join(", ")}
                 </div>
               )}
             </div>

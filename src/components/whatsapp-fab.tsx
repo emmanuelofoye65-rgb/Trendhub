@@ -2,19 +2,30 @@ import { MessageCircle } from "lucide-react";
 
 export function WhatsAppFab({ link }: { link?: string | null }) {
   if (!link || link.trim().length === 0) return null;
-  const url = new URL(link);
-  if (!url.searchParams.get("text")) {
-    url.searchParams.set("text", "Hello, I want to ask about this product");
+  
+  let href = link.trim();
+  if (!href.startsWith("http")) {
+    const phone = href.replace(/[^\d+]/g, '');
+    href = `https://wa.me/${phone}`;
   }
-  return (
-    <a
-      href={url.toString()}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Chat on WhatsApp"
-      className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-emerald-500/40 transition hover:scale-105"
-    >
-      <MessageCircle className="h-7 w-7" />
-    </a>
-  );
+  
+  try {
+    const url = new URL(href);
+    if (!url.searchParams.get("text")) {
+      url.searchParams.set("text", "Hello, I want to ask about this product");
+    }
+    return (
+      <a
+        href={url.toString()}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat on WhatsApp"
+        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-emerald-500/40 transition hover:scale-105"
+      >
+        <MessageCircle className="h-7 w-7" />
+      </a>
+    );
+  } catch (e) {
+    return null;
+  }
 }

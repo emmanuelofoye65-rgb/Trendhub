@@ -13,7 +13,7 @@ function createSupabaseAdminClient() {
   };
 
   const rawUrl = getEnv('SUPABASE_URL') || getEnv('VITE_SUPABASE_URL');
-  const rawKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+  const rawKey = getEnv('SUPABASE_SERVICE_ROLE_KEY') || getEnv('supabase_secret_key');
 
   const SUPABASE_URL = rawUrl ? rawUrl.replace(/^["']|["']$/g, '').trim() : undefined;
   const SUPABASE_SERVICE_ROLE_KEY = rawKey ? rawKey.replace(/^["']|["']$/g, '').trim() : undefined;

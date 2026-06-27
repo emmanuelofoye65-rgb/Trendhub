@@ -80,8 +80,16 @@
     "esbuild": "0.28.1",
     "js-yaml": "4.3.0",
     "xmlbuilder2": "4.0.3",
-    "@tanstack/start-server-core": "1.169.15",
-    "@tanstack/start-plugin-core": "1.169.18"
+    "@tanstack/start-server-core": "1.169.15"
+  },
+  "pnpm": {
+    "overrides": {
+      "h3": "1.15.11",
+      "esbuild": "0.28.1",
+      "js-yaml": "4.3.0",
+      "xmlbuilder2": "4.0.3",
+      "@tanstack/start-server-core": "1.169.15"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

@@ -13,6 +13,7 @@ dist-ssr
 .output
 .vinxi
 .vercel/output
+pnpm-lock.yaml
 .tanstack/**
 .nitro
 *.local

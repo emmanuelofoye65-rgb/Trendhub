@@ -8,8 +8,8 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
   nitro: {
-    preset: "node-server",
-    output: {
+    preset: process.env.VERCEL ? "vercel" : "node-server",
+    output: process.env.VERCEL ? undefined : {
       dir: "dist",
     }
   },

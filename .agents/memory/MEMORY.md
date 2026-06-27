@@ -1,1 +1,0 @@
-- [Supabase WebSocket SSR fix](supabase-ws-ssr.md) — Node.js 20 needs globalThis.WebSocket polyfilled before Supabase Realtime runs in Vite SSR.

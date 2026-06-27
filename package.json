@@ -4,7 +4,7 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 5000 --host 0.0.0.0",
+    "dev": "vite dev --port 3000 --host 0.0.0.0",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "start": "node dist/server/index.mjs",
@@ -45,9 +45,9 @@
     "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-query": "^5.83.0",
-    "@tanstack/react-router": "^1.170.16",
-    "@tanstack/react-start": "^1.168.26",
-    "@tanstack/router-plugin": "^1.168.18",
+    "@tanstack/react-router": "^1.168.25",
+    "@tanstack/react-start": "^1.167.50",
+    "@tanstack/router-plugin": "^1.167.28",
     "@tanstack/start": "^1.120.20",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
@@ -72,24 +72,7 @@
     "vaul": "^1.1.2",
     "vinxi": "^0.5.11",
     "vite-tsconfig-paths": "^6.0.2",
-    "ws": "^8.21.0",
     "zod": "^3.24.2"
-  },
-  "overrides": {
-    "h3": "1.15.11",
-    "esbuild": "0.28.1",
-    "js-yaml": "4.3.0",
-    "xmlbuilder2": "4.0.3",
-    "@tanstack/start-server-core": "1.169.15"
-  },
-  "pnpm": {
-    "overrides": {
-      "h3": "1.15.11",
-      "esbuild": "0.28.1",
-      "js-yaml": "4.3.0",
-      "xmlbuilder2": "4.0.3",
-      "@tanstack/start-server-core": "1.169.15"
-    }
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

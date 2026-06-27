@@ -1,4 +1,3 @@
-import "./lib/ws-polyfill";
 import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
